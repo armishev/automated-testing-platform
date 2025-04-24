@@ -1,38 +1,31 @@
-name: CI Build and Test
+name: Java CI
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    services:
-      selenoid:
-        image: aerokube/selenoid:latest-release
-        ports:
-          - 4444:4444
-        options: >-
-          --name=selenoid
-          --privileged
-          --shm-size=2g
+  build-and-run:
+    runs-on: self-hosted
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Change directory to telegram-bot
+        run: cd telegram-bot
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
           java-version: '17'
+          distribution: 'temurin'
 
       - name: Build with Maven
-        run: mvn clean install
+        run: mvn clean package
 
-      # Опционально: запуск тестов, которые используют Selenoid
-      - name: Run tests
-        run: mvn test -Dselenide.remote=http://localhost:4444/wd/hub
+      - name: Build Docker image
+        run: docker build -t your-app .
+
+      - name: Run Docker container
+        run: docker run -d -p 8080:8080 your-app
