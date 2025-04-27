@@ -19,7 +19,7 @@ public class SelenideTestRunner {
 
     public byte[] runTest(String url) throws IOException {
         // Настройка Selenide
-        Configuration.remote = "http://localhost:4444/wd/hub"; // URL Selenoid
+        Configuration.remote = "http://selenoid:4444/wd/hub"; // URL Selenoid
         Configuration.browser = "firefox"; // Браузер
         Configuration.browserSize = "1920x1080"; // Размер окна браузера
         Configuration.headless = true; // Без GUI (опционально)
