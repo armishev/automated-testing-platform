@@ -28,7 +28,7 @@ jobs:
 
       - name: Собрать образы Docker
         run: |
-          docker pull selenoid/firefox:latest
+          docker pull seleniarm/standalone-firefox
           docker-compose build
 
       - name: Остановить старые контейнеры и почистить систему
