@@ -23,13 +23,18 @@ jobs:
           cd ./telegram-bot
           echo "Текущая директория: $(pwd)"
           mvn clean package -DskipTests
-          docker build -t your-app .
+          docker build -t tgbot .
 
       - name: Остановить старый контейнер (если есть)
         run: |
           docker stop your-app || true
           docker rm your-app || true
+          docker stop tgbot || true
+          docker rm tgbot || true
 
       - name: Запустить новый контейнер
         run: |
-          docker run -d --name your-app -p 8080:8080 -e telegram.bot.token=${{ secrets.TELEGRAM_BOT_TOKEN }} your-app
+          docker run -d --name tgbot -p 8080:8080 \
+          -e telegram.bot.token=${{ secrets.TELEGRAM_BOT_TOKEN }} \
+          -e telegram.bot.username=${{ secrets.TELEGRAM_BOT_USERNAME }} \
+          your-app
