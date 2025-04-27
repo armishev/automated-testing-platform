@@ -32,11 +32,11 @@ jobs:
 
       - name: Остановить старые контейнеры (если есть)
         run: |
-          docker stop telegram-bot || true
-          docker rm telegram-bot || true
-          docker stop image-renderer || true
-          docker rm image-renderer || true
+          docker-compose down || true
 
       - name: Запустить новые контейнеры
         run: |
-          docker-compose up -d
+              export TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+              export TELEGRAM_BOT_USERNAME=${{ secrets.TELEGRAM_BOT_USERNAME }}
+              export IMAGE_RENDERER_URL=${{ secrets.IMAGE_RENDERER_URL }}
+              docker-compose up -d
