@@ -1,4 +1,4 @@
-name: Java CI
+name: Java CI/CD for Microservices
 
 on:
   push:
@@ -18,24 +18,25 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Собрать проект и создать Docker-образ
+      - name: Собрать проекты (Maven)
         run: |
-          cd ./telegram-bot
-          echo "Текущая директория: $(pwd)"
+          cd telegram-bot
           mvn clean package -DskipTests
-          docker build -t tgbot .
+          cd ../image-renderer
+          mvn clean package -DskipTests
+          cd ..
 
-      - name: Остановить старый контейнер (если есть)
+      - name: Собрать образы Docker
         run: |
-          docker stop your-app || true
-          docker rm your-app || true
-          docker stop tgbot || true
-          docker rm tgbot || true
+          docker-compose build
 
-      - name: Запустить новый контейнер
+      - name: Остановить старые контейнеры (если есть)
         run: |
-          docker run -d --name tgbot -p 8080:8080 \
-          -e telegram.bot.token=${{ secrets.TELEGRAM_BOT_TOKEN }} \
-          -e telegram.bot.username=${{ secrets.TELEGRAM_BOT_USERNAME }} \
-          -e imagerenderer.url=${{ secrets.IMAGE_RENDERER_URL }} \
-          tgbot
+          docker stop telegram-bot || true
+          docker rm telegram-bot || true
+          docker stop image-renderer || true
+          docker rm image-renderer || true
+
+      - name: Запустить новые контейнеры
+        run: |
+          docker-compose up -d
