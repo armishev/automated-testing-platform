@@ -1,12 +1,12 @@
 {
-    "firefox": {
-        "default": "latest",
-        "versions": {
-            "latest": {
-                "image": "seleniarm/standalone-firefox:latest",
-                "port": "4444",
-                "path": "/wd/hub"
-            }
-        }
+  "firefox": {
+    "default": "latest",
+    "versions": {
+      "latest": {
+        "image": "selenoid/vnc_firefox:latest",
+        "port": "4444",
+        "path": "/wd/hub"
+      }
     }
+  }
 }
