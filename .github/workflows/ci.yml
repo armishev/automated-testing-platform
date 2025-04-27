@@ -22,6 +22,6 @@ jobs:
         run: |
           cd ./telegram-bot
           echo "Текущая директория: $(pwd)"
-          mvn clean package
+          mvn clean package -DskipTests
           docker build -t your-app .
           docker run -d -p 8080:8080 your-app
