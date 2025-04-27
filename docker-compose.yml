@@ -33,15 +33,16 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./config/:/etc/selenoid/:ro
-    command: [
-      "-limit", "5",
-      "-conf", "/etc/selenoid/browsers.json",
-      "-video-output-dir", "/opt/selenoid/video",
-      "-container-network", "selenoid-network"
-    ]
+    command:
+      [
+        "-limit", "5",
+        "-conf", "/etc/selenoid/browsers.json",
+        "-video-output-dir", "/opt/selenoid/video",
+        "-container-network", "selenoid-network"
+      ]
     networks:
       - selenoid-network
 
 networks:
   selenoid-network:
-    driver: bridge
+    external: true
