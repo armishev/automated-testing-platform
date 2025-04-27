@@ -31,6 +31,10 @@ jobs:
           docker pull seleniarm/standalone-firefox
           docker-compose build
 
+      - name: Создать сеть для Selenoid (если ещё нет)
+        run: |
+          docker network create selenoid-network || true
+
       - name: Остановить старые контейнеры и почистить систему
         run: |
           docker-compose down || true
