@@ -10,6 +10,7 @@ services:
     environment:
       - telegram.bot.token=${TELEGRAM_BOT_TOKEN}
       - telegram.bot.username=${TELEGRAM_BOT_USERNAME}
+      - imagerenderer.url=${IMAGE_RENDERER_URL}
 
   image-renderer:
     build:
