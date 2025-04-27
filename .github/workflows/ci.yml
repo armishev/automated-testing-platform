@@ -34,7 +34,6 @@ jobs:
       - name: Остановить старые контейнеры и почистить систему
         run: |
           docker-compose down || true
-          docker system prune -af --volumes || true
 
       - name: Запустить новые контейнеры
         env:
