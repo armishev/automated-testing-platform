@@ -37,4 +37,5 @@ jobs:
           docker run -d --name tgbot -p 8080:8080 \
           -e telegram.bot.token=${{ secrets.TELEGRAM_BOT_TOKEN }} \
           -e telegram.bot.username=${{ secrets.TELEGRAM_BOT_USERNAME }} \
-          your-app
+          -e imagerenderer.url=${{ secrets.IMAGE_RENDERER_URL }} \
+          tgbot
