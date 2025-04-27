@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  telegram-bot:
+    build:
+      context: ./telegram-bot
+    container_name: telegram-bot
+    ports:
+      - "8080:8080"
+    environment:
+      - telegram.bot.token=${TELEGRAM_BOT_TOKEN}
+      - telegram.bot.username=${TELEGRAM_BOT_USERNAME}
+
+  image-renderer:
+    build:
+      context: ./image-renderer
+    container_name: image-renderer
+    ports:
+      - "8081:8081"
