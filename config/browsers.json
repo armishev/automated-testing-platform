@@ -1,0 +1,13 @@
+{
+    "firefox": {
+        "default": "latest",
+        "versions": {
+            "latest": {
+                "image": "selenoid/firefox:latest",
+                "port": "4444",
+                "path": "/",
+                "tmpfs": {"/tmp": "size=512m"}
+            }
+        }
+    }
+}
