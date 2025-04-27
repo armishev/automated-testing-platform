@@ -30,13 +30,15 @@ jobs:
         run: |
           docker-compose build
 
-      - name: Остановить старые контейнеры (если есть)
+      - name: Остановить старые контейнеры и почистить систему
         run: |
           docker-compose down || true
+          docker system prune -af --volumes || true
 
       - name: Запустить новые контейнеры
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_BOT_USERNAME: ${{ secrets.TELEGRAM_BOT_USERNAME }}
+          IMAGE_RENDERER_URL: ${{ secrets.IMAGE_RENDERER_URL }}
         run: |
-              export TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
-              export TELEGRAM_BOT_USERNAME=${{ secrets.TELEGRAM_BOT_USERNAME }}
-              export IMAGE_RENDERER_URL=${{ secrets.IMAGE_RENDERER_URL }}
-              docker-compose up -d
+          docker-compose up -d
