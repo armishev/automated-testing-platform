@@ -18,3 +18,18 @@ services:
     container_name: image-renderer
     ports:
       - "8081:8081"
+
+  selenoid:
+    image: aerokube/selenoid:latest-release
+    container_name: selenoid
+    network_mode: bridge
+    ports:
+      - "4444:4444"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config/:/etc/selenoid/:ro
+    command: [
+      "-limit", "5",
+      "-conf", "/etc/selenoid/browsers.json",
+      "-video-output-dir", "/opt/selenoid/video"
+    ]
