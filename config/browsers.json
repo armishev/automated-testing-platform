@@ -1,14 +1,21 @@
 {
-  "firefox": {
-    "default": "125.0",
+  "chrome": {
+    "default": "latest",
     "versions": {
-      "125.0": {
-        "image": "selenoid/firefox:125.0",
+      "latest": {
+        "image": "seleniarm/standalone-chromium:latest",
         "port": "4444",
-        "path": "/wd/hub",
-        "env": [
-          "DISPLAY=:99.0"
-        ]
+        "path": "/"
+      }
+    }
+  },
+  "firefox": {
+    "default": "latest",
+    "versions": {
+      "latest": {
+        "image": "seleniarm/standalone-firefox:latest",
+        "port": "4444",
+        "path": "/"
       }
     }
   }
