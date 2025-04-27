@@ -1,10 +1,20 @@
 HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
 
-### STS ###
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# VS Code (если вдруг понадобится)
+.vscode/
+
+# Spring Boot конфиги — НЕ игнорировать!
+# (Убираем неправильное правило, чтобы application.properties остался)
+
+# STS (Spring Tool Suite)
 .apt_generated
 .classpath
 .factorypath
@@ -13,22 +23,12 @@ target/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
+# NetBeans (если не нужен - можно удалить)
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# build/ (только если используешь Gradle, можно оставить)
 build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
-.vscode/
-/src/main/resources/application.properties
