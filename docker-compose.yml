@@ -36,7 +36,8 @@ services:
     command: [
       "-limit", "5",
       "-conf", "/etc/selenoid/browsers.json",
-      "-video-output-dir", "/opt/selenoid/video"
+      "-video-output-dir", "/opt/selenoid/video",
+      "-container-network", "selenoid-network"
     ]
     networks:
       - selenoid-network
