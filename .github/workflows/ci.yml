@@ -9,29 +9,19 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout repository
+      - name: Клонировать репозиторий
         uses: actions/checkout@v3
 
-      - name: List directory contents
-        run: ls -la
-
-      - name: Change directory to telegram-bot
-        run: cd ./telegram-bot
-
-      - name: List directory contents
-        run: ls -la
-
-      - name: Set up JDK 17
+      - name: Настроить JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build with Maven
-        run: mvn clean package
-
-      - name: Build Docker image
-        run: docker build -t your-app .
-
-      - name: Run Docker container
-        run: docker run -d -p 8080:8080 your-app
+      - name: Собрать и запустить проект
+        run: |
+          cd ./telegram-bot
+          echo "Текущая директория: $(pwd)"
+          mvn clean package
+          docker build -t your-app .
+          docker run -d -p 8080:8080 your-app
