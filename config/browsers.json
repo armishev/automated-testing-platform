@@ -5,7 +5,10 @@
       "125.0": {
         "image": "selenoid/firefox:125.0",
         "port": "4444",
-        "path": "/wd/hub"
+        "path": "/wd/hub",
+        "env": [
+          "DISPLAY=:99.0"
+        ]
       }
     }
   }
