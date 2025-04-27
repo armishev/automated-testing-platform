@@ -18,10 +18,18 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Собрать и запустить проект
+      - name: Собрать проект и создать Docker-образ
         run: |
           cd ./telegram-bot
           echo "Текущая директория: $(pwd)"
           mvn clean package -DskipTests
           docker build -t your-app .
-          docker run -d -p 8080:8080 your-app
+
+      - name: Остановить старый контейнер (если есть)
+        run: |
+          docker stop your-app || true
+          docker rm your-app || true
+
+      - name: Запустить новый контейнер
+        run: |
+          docker run -d --name your-app -p 8080:8080 your-app
