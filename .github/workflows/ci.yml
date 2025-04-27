@@ -32,4 +32,4 @@ jobs:
 
       - name: Запустить новый контейнер
         run: |
-          docker run -d --name your-app -p 8080:8080 your-app
+          docker run -d --name your-app -p 8080:8080 -e telegram.bot.token=${{ secrets.TELEGRAM_BOT_TOKEN }} your-app
