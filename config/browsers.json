@@ -3,10 +3,9 @@
         "default": "latest",
         "versions": {
             "latest": {
-                "image": "selenoid/firefox:latest",
+                "image": "seleniarm/standalone-firefox:latest",
                 "port": "4444",
-                "path": "/",
-                "tmpfs": {"/tmp": "size=512m"}
+                "path": "/wd/hub"
             }
         }
     }
