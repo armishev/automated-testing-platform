@@ -11,6 +11,8 @@ services:
       - telegram.bot.token=${TELEGRAM_BOT_TOKEN}
       - telegram.bot.username=${TELEGRAM_BOT_USERNAME}
       - imagerenderer.url=${IMAGE_RENDERER_URL}
+    networks:
+      - selenoid-network
 
   image-renderer:
     build:
@@ -20,11 +22,12 @@ services:
       - "8081:8081"
     volumes:
       - ./image-renderer-screenshots:/build/reports/tests
+    networks:
+      - selenoid-network
 
   selenoid:
     image: aerokube/selenoid:latest-release
     container_name: selenoid
-    network_mode: bridge
     ports:
       - "4444:4444"
     volumes:
@@ -35,3 +38,9 @@ services:
       "-conf", "/etc/selenoid/browsers.json",
       "-video-output-dir", "/opt/selenoid/video"
     ]
+    networks:
+      - selenoid-network
+
+networks:
+  selenoid-network:
+    driver: bridge
