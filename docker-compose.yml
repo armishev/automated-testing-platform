@@ -18,6 +18,8 @@ services:
     container_name: image-renderer
     ports:
       - "8081:8081"
+    volumes:
+      - ./image-renderer-screenshots:/build/reports/tests
 
   selenoid:
     image: aerokube/selenoid:latest-release
