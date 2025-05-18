@@ -6,7 +6,9 @@ on:
 
 jobs:
   build-and-run:
+    if: contains(github.event.head_commit.message, '[deploy]')
     runs-on: self-hosted
+
 
     steps:
       - name: Очистить рабочую директорию и сбросить права
