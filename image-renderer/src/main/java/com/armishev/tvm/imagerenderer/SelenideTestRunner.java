@@ -28,6 +28,8 @@ public class SelenideTestRunner {
         Selenide.open(url);
         Selenide.sleep(2000); // 2 секунды
 
+        new File("build/reports/tests").mkdirs();
+
         // Сохранение скриншота
         screenshot("page_screenshot");
 
