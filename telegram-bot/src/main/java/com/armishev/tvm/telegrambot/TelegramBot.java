@@ -148,7 +148,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                     break;
                 case 5:
                     if (!messageText.matches("(?i)GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD")) {
-                        sendText(chatId, "❌ Метод запроса должен быть одним из: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD");
+                        sendText(chatId, "❌ Метод запроса должен быть одним из: GET, POST, PUT, DELETE, PATCH, " +
+                                "OPTIONS, HEAD");
                         return true;
                     }
                     loadDraft.setMethod(messageText.toUpperCase());
@@ -162,7 +163,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                     }
                     loadDraft.setPath(messageText);
                     loadDraft.setStep(7);
-                    sendText(chatId, "⚠️ Подтвердить запуск нагрузки? Напиши `да` для подтверждения или `нет` для отмены.");
+                    sendText(chatId, "⚠️ Подтвердить запуск нагрузки? Напиши `да` для подтверждения или `нет` для " +
+                            "отмены.");
                     break;
                 case 7:
                     if (messageText.equalsIgnoreCase("да")) {
@@ -520,6 +522,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         File repoDir = Files.createTempDirectory("jmeter-trigger").toFile();
         Git.cloneRepository()
                 .setURI(repoUrl)
+                .setBranch("develop")
                 .setDirectory(repoDir)
                 .call();
 
@@ -534,7 +537,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         Git git = Git.open(repoDir);
         git.add().addFilepattern(triggerFilePath).call();
         git.commit().setMessage("Добавлен load test через Telegram Bot").call();
-        git.push().call();
+        git.push().setRemote("origin").add("develop").call();
 
         deleteDirectory(repoDir);
     }
