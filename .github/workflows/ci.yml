@@ -9,6 +9,11 @@ jobs:
     runs-on: self-hosted
 
     steps:
+      - name: Очистить рабочую директорию и сбросить права
+        run: |
+          sudo rm -rf ${{ github.workspace }}/*
+        continue-on-error: true
+
       - name: Клонировать репозиторий
         uses: actions/checkout@v3
 
