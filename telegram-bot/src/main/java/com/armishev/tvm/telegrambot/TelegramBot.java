@@ -181,6 +181,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     loadTestSessions.remove(chatId);
                     break;
             }
+            return true;
         }
         return false;
     }
