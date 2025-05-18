@@ -106,6 +106,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     response = "Неизвестная команда. Введите /help для списка доступных команд.";
                     sendText(chatId, response);
                     break;
+            }
         }
     }
 
