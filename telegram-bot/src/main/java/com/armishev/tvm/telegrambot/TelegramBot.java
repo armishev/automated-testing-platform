@@ -1,7 +1,14 @@
 package com.armishev.tvm.telegrambot;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.List;
 
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
@@ -28,6 +35,11 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Value("${imagerenderer.url}")
     private String imageRendererUrl;
+
+    @Value("${git.repo.url}")
+    private String gitRepoUrl;
+
+
 
     public TelegramBot(@Value("${telegram.bot.token}") String botToken) {
         super(botToken);
@@ -72,6 +84,17 @@ public class TelegramBot extends TelegramLongPollingBot {
                         sendText(chatId, "Произошла ошибка при создании скриншота.");
                     }
                     break;
+                case "/addAlert":
+                    sendText(chatId, "Добавляю тестовый алерт...");
+                    try {
+                        addAlertToGitRepo();
+                        sendText(chatId, "Алерт добавлен и запушен в Git.");
+                    } catch (Exception e) {
+                        logger.error("Ошибка при добавлении алерта: {}", e.getMessage());
+                        sendText(chatId, "Ошибка при добавлении алерта.");
+                    }
+                    break;
+
                 default:
                     response = "Неизвестная команда. Введите /help для списка доступных команд.";
                     sendText(chatId, response);
@@ -121,4 +144,42 @@ public class TelegramBot extends TelegramLongPollingBot {
             logger.error("Ошибка при отправке фотографии: {}", e.getMessage());
         }
     }
+
+    private void addAlertToGitRepo() throws IOException, GitAPIException {
+        File localPath = Files.createTempDirectory("brk-repo").toFile();
+
+        Git git = Git.cloneRepository()
+                .setURI(gitRepoUrl)
+                .setDirectory(localPath)
+                .call();
+
+        File rulesFile = new File(localPath, "alert_rules.yml");
+
+        // Добавляем алерт
+        List<String> lines = Files.readAllLines(rulesFile.toPath(), StandardCharsets.UTF_8);
+        String newAlert = """
+        - alert: DynamicAlertFromBot
+          expr: vector(1)
+          for: 5s
+          labels:
+            severity: info
+          annotations:
+            summary: "Добавлено из Telegram"
+            description: "Этот алерт добавлен ботом через /addAlert"
+        """;
+
+        int insertIndex = lines.size() - 1;
+        lines.add(insertIndex, newAlert);
+        Files.write(rulesFile.toPath(), lines, StandardCharsets.UTF_8);
+
+        git.add().addFilepattern("alert_rules.yml").call();
+        git.commit().setMessage("Add alert via Telegram Bot").call();
+        git.push().call();
+
+        // Удаляем временные файлы
+        FileUtils.deleteDirectory(localPath);
+    }
+
+
+
 }

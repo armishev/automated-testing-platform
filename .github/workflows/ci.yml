@@ -44,5 +44,6 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_BOT_USERNAME: ${{ secrets.TELEGRAM_BOT_USERNAME }}
           IMAGE_RENDERER_URL: ${{ secrets.IMAGE_RENDERER_URL }}
+          GIT_REPO_URL: ${{ secrets.GIT_REPO_URL }}
         run: |
           docker-compose up -d
