@@ -10,7 +10,7 @@
     </TestPlan>
     <hashTree>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group" enabled="true">
-        <stringProp name="ThreadGroup.num_threads">${THREADS}</stringProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(THREADS)}</stringProp>
         <stringProp name="ThreadGroup.ramp_time">1</stringProp>
         <longProp name="ThreadGroup.start_time">1710000000000</longProp>
         <longProp name="ThreadGroup.end_time">1710000000000</longProp>
@@ -25,11 +25,11 @@
       <hashTree>
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="HTTP Request" enabled="true">
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments"/>
-          <stringProp name="HTTPSampler.domain">${DOMAIN}</stringProp>
-          <stringProp name="HTTPSampler.port">${PORT}</stringProp>
-          <stringProp name="HTTPSampler.protocol">${PROTOCOL}</stringProp>
-          <stringProp name="HTTPSampler.path">${PATH}</stringProp>
-          <stringProp name="HTTPSampler.method">${METHOD}</stringProp>
+          <stringProp name="HTTPSampler.domain">${__P(DOMAIN)}</stringProp>
+          <stringProp name="HTTPSampler.port">${__P(PORT)}</stringProp>
+          <stringProp name="HTTPSampler.protocol">${__P(PROTOCOL)}</stringProp>
+          <stringProp name="HTTPSampler.path">${__P(PATH)}</stringProp>
+          <stringProp name="HTTPSampler.method">${__P(METHOD)}</stringProp>
         </HTTPSamplerProxy>
         <hashTree/>
       </hashTree>
