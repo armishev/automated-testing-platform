@@ -13,7 +13,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
+import com.armishev.tvm.telegrambot.models.AlertDraft;
 import org.eclipse.jgit.api.Git;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +52,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Value("${git.repo.url}")
     private String gitRepoUrl;
 
+    private final Map<Long, AlertDraft> alertSessions = new HashMap<>();
+
 
 
     public TelegramBot(@Value("${telegram.bot.token}") String botToken) {
@@ -68,6 +72,64 @@ public class TelegramBot extends TelegramLongPollingBot {
             String messageText = update.getMessage().getText().trim();
             Long chatId = update.getMessage().getChatId();
             String response;
+
+
+            if (messageText.equalsIgnoreCase("/addalert")) {
+                alertSessions.put(chatId, new AlertDraft(null, null, null, null, null, null, 1));
+                sendText(chatId, "🛠️ Введите название алерта:");
+                return;
+            }
+
+            AlertDraft draft = alertSessions.get(chatId);
+            if (draft != null) {
+                if (messageText.isBlank()) {
+                    sendText(chatId, "❗ Значение не может быть пустым. Пожалуйста, введите снова.");
+                    return;
+                }
+                switch (draft.getStep()) {
+                    case 1:
+                        draft.setAlertName(messageText + "_" + UUID.randomUUID().toString().substring(0, 5));
+                        draft.setAlertName(messageText);
+                        draft.setStep(2);
+                        sendText(chatId, "🔍 Введите PromQL выражение (expr):");
+                        break;
+                    case 2:
+                        draft.setExpr(messageText);
+                        draft.setStep(3);
+                        sendText(chatId, "⏱️ Введите длительность (например, 30s):");
+                        break;
+                    case 3:
+                        draft.setDuration(messageText);
+                        draft.setStep(4);
+                        sendText(chatId, "⚠️ Введите уровень severity (info, warning, critical):");
+                        break;
+                    case 4:
+                        draft.setSeverity(messageText);
+                        draft.setStep(5);
+                        sendText(chatId, "📝 Введите краткое описание (summary):");
+                        break;
+                    case 5:
+                        draft.setSummary(messageText);
+                        draft.setStep(6);
+                        sendText(chatId, "📄 Введите полное описание (description):");
+                        break;
+                    case 6:
+                        draft.setDescription(messageText);
+                        sendText(chatId, "✅ Формирую алерт...");
+                        try {
+                            addAlertToGitRepo(draft);
+                            sendText(chatId, "✅ Алерт добавлен и запушен в Git.");
+                        } catch (Exception e) {
+                            sendText(chatId, "❌ Ошибка при добавлении алерта: " + e.getMessage());
+                        }
+                        alertSessions.remove(chatId);
+                        break;
+                }
+                return;
+            }
+
+
+
 
             // Обработка команд
             switch (messageText.toLowerCase()) {
@@ -98,17 +160,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                     } catch (Exception e) {
                         logger.error("Ошибка при получении скриншота: {}", e.getMessage());
                         sendText(chatId, "Произошла ошибка при создании скриншота.");
-                    }
-                    break;
-
-                case "/addalert":
-                    sendText(chatId, "Добавляю тестовый алерт...");
-                    try {
-                        addAlertToGitRepo(); // реализуй этот метод ниже
-                        sendText(chatId, "✅ Тестовый алерт добавлен и отправлен в Git.");
-                    } catch (Exception e) {
-                        logger.error("Ошибка при добавлении алерта: {}", e.getMessage());
-                        sendText(chatId, "❌ Ошибка при добавлении алерта: " + e.getMessage());
                     }
                     break;
 
@@ -162,19 +213,16 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    public void addAlertToGitRepo() throws Exception {
-        // Настройки
+    public void addAlertToGitRepo(AlertDraft draft) throws Exception {
         String repoUrl = gitRepoUrl;
         String alertFilePath = "alert_rules.yml";
 
-        // Клонируем временно
         File repoDir = Files.createTempDirectory("alert-repo").toFile();
         Git.cloneRepository()
                 .setURI(repoUrl)
                 .setDirectory(repoDir)
                 .call();
 
-        // Читаем YAML
         File alertFile = new File(repoDir, alertFilePath);
         LoaderOptions loaderOptions = new LoaderOptions();
         Yaml yaml = new Yaml(new SafeConstructor(loaderOptions));
@@ -204,25 +252,24 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         List<Map<String, Object>> rules = (List<Map<String, Object>>) targetGroup.get("rules");
 
-        // Добавляем новый алерт
+        // Формируем алерт из draft
         Map<String, Object> alert = new LinkedHashMap<>();
-        alert.put("alert", "DynamicAlertFromBot");
-        alert.put("expr", "vector(1)");
-        alert.put("for", "5s");
+        alert.put("alert", draft.getAlertName());
+        alert.put("expr", draft.getExpr());
+        alert.put("for", draft.getDuration());
 
         Map<String, String> labels = new LinkedHashMap<>();
-        labels.put("severity", "info");
+        labels.put("severity", draft.getSeverity());
         alert.put("labels", labels);
 
         Map<String, String> annotations = new LinkedHashMap<>();
-        annotations.put("summary", "Добавлено из Telegram");
-        annotations.put("description", "Этот алерт добавлен ботом через /addalert");
+        annotations.put("summary", draft.getSummary());
+        annotations.put("description", draft.getDescription());
         alert.put("annotations", annotations);
 
         rules.add(alert);
         data.put("groups", groups);
 
-        // Записываем обратно
         DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         options.setPrettyFlow(true);
@@ -233,15 +280,16 @@ public class TelegramBot extends TelegramLongPollingBot {
             yaml.dump(data, writer);
         }
 
-        // Git commit & push
         Git git = Git.open(repoDir);
         git.add().addFilepattern(alertFilePath).call();
-        git.commit().setMessage("Добавлен алерт из Telegram бота").call();
+        git.commit().setMessage("Добавлен алерт '" + draft.getAlertName() + "' из Telegram бота").call();
         git.push().call();
 
-        // Удаляем временный каталог
         deleteDirectory(repoDir);
     }
+
+
+
 
     private void deleteDirectory(File directory) {
         if (directory.isDirectory()) {
