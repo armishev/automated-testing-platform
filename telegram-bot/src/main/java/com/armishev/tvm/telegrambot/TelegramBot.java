@@ -65,34 +65,40 @@ public class TelegramBot extends TelegramLongPollingBot {
                     response = "Привет! Я бот для автоматизированного тестирования. Введите /help для получения списка команд.";
                     sendText(chatId, response);
                     break;
+
                 case "/help":
                     response = "Доступные команды:\n" +
                             "/start - начать работу с ботом\n" +
                             "/help - список команд\n" +
-                            "/test - выполнить тестовую команду";
+                            "/test - выполнить тестовую команду\n" +
+                            "/metrics - получить метрики в виде изображения\n" +
+                            "/addalert - добавить тестовый алерт в репозиторий";
                     sendText(chatId, response);
                     break;
+
                 case "/test":
-                    response = "Тестовая команда выполнена!"; // Здесь можно добавить вызов сервиса или другую логику
+                    response = "Тестовая команда выполнена!";
                     sendText(chatId, response);
                     break;
+
                 case "/metrics":
                     try {
-                        byte[] imageBytes = getScreenshot("http://147.45.150.56:4000/public-dashboards/9191b094754e459688fa1aaeecb77794 "); // Или получаем URL из сообщения
+                        byte[] imageBytes = getScreenshot("http://147.45.150.56:4000/public-dashboards/9191b094754e459688fa1aaeecb77794");
                         sendPhoto(chatId, imageBytes);
                     } catch (Exception e) {
                         logger.error("Ошибка при получении скриншота: {}", e.getMessage());
                         sendText(chatId, "Произошла ошибка при создании скриншота.");
                     }
                     break;
-                case "/addAlert":
+
+                case "/addalert":
                     sendText(chatId, "Добавляю тестовый алерт...");
                     try {
-                        addAlertToGitRepo();
-                        sendText(chatId, "Алерт добавлен и запушен в Git.");
+                        addAlertToGitRepo(); // реализуй этот метод ниже
+                        sendText(chatId, "✅ Тестовый алерт добавлен и отправлен в Git.");
                     } catch (Exception e) {
                         logger.error("Ошибка при добавлении алерта: {}", e.getMessage());
-                        sendText(chatId, "Ошибка при добавлении алерта.");
+                        sendText(chatId, "❌ Ошибка при добавлении алерта: " + e.getMessage());
                     }
                     break;
 
@@ -100,7 +106,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                     response = "Неизвестная команда. Введите /help для списка доступных команд.";
                     sendText(chatId, response);
                     break;
-            }
         }
     }
 
