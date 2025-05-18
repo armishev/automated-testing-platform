@@ -88,7 +88,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                 switch (draft.getStep()) {
                     case 1:
                         draft.setAlertName(messageText + "_" + UUID.randomUUID().toString().substring(0, 5));
-                        draft.setAlertName(messageText);
                         draft.setStep(2);
                         sendText(chatId, "🔍 Введите PromQL выражение (expr):");
                         break;
@@ -154,7 +153,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                             "/help - список команд\n" +
                             "/test - выполнить тестовую команду\n" +
                             "/metrics - получить метрики в виде изображения\n" +
-                            "/addalert - добавить тестовый алерт в репозиторий";
+                            "/addAlert - добавить тестовый алерт в репозиторий\n" +
+                            "/listAlerts - получить список алертовя";
                     sendText(chatId, response);
                     break;
 
@@ -171,6 +171,17 @@ public class TelegramBot extends TelegramLongPollingBot {
                     } catch (Exception e) {
                         logger.error("Ошибка при получении скриншота: {}", e.getMessage());
                         sendText(chatId, "Произошла ошибка при создании скриншота.");
+                    }
+                    break;
+
+                case "/listalerts":
+                    sendText(chatId, "📋 Получаю список алертов...");
+                    try {
+                        String list = listAlertsFromGit();
+                        sendText(chatId, list);
+                    } catch (Exception e) {
+                        logger.error("Ошибка при получении алертов: {}", e.getMessage());
+                        sendText(chatId, "❌ Ошибка при получении списка алертов.");
                     }
                     break;
 
@@ -299,6 +310,48 @@ public class TelegramBot extends TelegramLongPollingBot {
         git.push().call();
 
         deleteDirectory(repoDir);
+    }
+
+    public String listAlertsFromGit() throws Exception {
+        String repoUrl = gitRepoUrl;
+        String alertFilePath = "alert_rules.yml";
+
+        File repoDir = Files.createTempDirectory("alert-list").toFile();
+        Git.cloneRepository()
+                .setURI(repoUrl)
+                .setDirectory(repoDir)
+                .call();
+
+        File alertFile = new File(repoDir, alertFilePath);
+        Yaml yaml = new Yaml(new SafeConstructor(new LoaderOptions()));
+        Map<String, Object> data;
+
+        try (InputStream input = new FileInputStream(alertFile)) {
+            data = yaml.load(input);
+        }
+
+        StringBuilder result = new StringBuilder("📊 Список алертов:\n\n");
+
+        List<Map<String, Object>> groups = (List<Map<String, Object>>) data.get("groups");
+        for (Map<String, Object> group : groups) {
+            List<Map<String, Object>> rules = (List<Map<String, Object>>) group.get("rules");
+            for (Map<String, Object> rule : rules) {
+                result.append("🚨 ").append(rule.get("alert")).append("\n");
+                result.append("🔍 ").append(rule.get("expr")).append("\n");
+                Map<String, String> labels = (Map<String, String>) rule.get("labels");
+                if (labels != null && labels.get("severity") != null) {
+                    result.append("⚠️ Уровень: ").append(labels.get("severity")).append("\n");
+                }
+                Map<String, String> annotations = (Map<String, String>) rule.get("annotations");
+                if (annotations != null && annotations.get("summary") != null) {
+                    result.append("📝 ").append(annotations.get("summary")).append("\n");
+                }
+                result.append("\n");
+            }
+        }
+
+        deleteDirectory(repoDir);
+        return result.toString();
     }
 
 
