@@ -81,7 +81,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                 return;
             }
 
-
             if (processAlertDraft(messageText, chatId)) {
                 return;
             }
@@ -103,6 +102,11 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
 
         LoadTestDraft loadDraft = loadTestSessions.get(chatId);
+        if (messageText.equalsIgnoreCase("/cancel")) {
+            loadTestSessions.remove(chatId);
+            sendText(chatId, "🚫 Создание нагрузочного теста отменено.");
+            return true;
+        }
         if (loadDraft != null) {
             if (messageText.isBlank()) {
                 sendText(chatId, "❗ Значение не может быть пустым. Введите снова.");
@@ -278,6 +282,11 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
 
         AlertDraft draft = alertSessions.get(chatId);
+        if (messageText.equalsIgnoreCase("/exit")) {
+            alertSessions.remove(chatId);
+            sendText(chatId, "🚫 Создание алерта отменено.");
+            return true;
+        }
         if (draft != null) {
             if (messageText.isBlank()) {
                 sendText(chatId, "❗ Значение не может быть пустым. Пожалуйста, введите снова.");
