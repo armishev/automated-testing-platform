@@ -49,9 +49,10 @@ services:
     container_name: jmeter
     volumes:
       - ./jmeter:/testplan
+    entrypoint: [ "bash" ]
+    command: [ "-c", "sleep infinity" ]
     networks:
       - selenoid-network
-    command: ["bash", "-c", "sleep infinity"]
 
 networks:
   selenoid-network:
