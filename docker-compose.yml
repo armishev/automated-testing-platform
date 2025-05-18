@@ -44,6 +44,19 @@ services:
     networks:
       - selenoid-network
 
+  jmeter:
+    image: justb4/jmeter:5.6.2
+    container_name: jmeter
+    environment:
+      - DOMAIN=${JMETER_DOMAIN}
+      - PORT=${JMETER_PORT}
+      - THREADS=${JMETER_THREADS}
+    volumes:
+      - ./jmeter:/testplan
+    networks:
+      - selenoid-network
+    command: sleep infinity
+
 networks:
   selenoid-network:
     external: true
