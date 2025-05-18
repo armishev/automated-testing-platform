@@ -2,13 +2,19 @@ package com.armishev.tvm.telegrambot;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.InputStream;
+import java.io.Writer;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
@@ -21,7 +27,10 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.apache.commons.io.FileUtils;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
+import org.yaml.snakeyaml.representer.Representer;
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
@@ -152,40 +161,95 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void addAlertToGitRepo() throws IOException, GitAPIException {
-        File localPath = Files.createTempDirectory("brk-repo").toFile();
+    public void addAlertToGitRepo() throws Exception {
+        // Настройки
+        String repoUrl = gitRepoUrl;
+        String alertFilePath = "alert_rules.yml";
 
-        Git git = Git.cloneRepository()
-                .setURI(gitRepoUrl)
-                .setDirectory(localPath)
+        // Клонируем временно
+        File repoDir = Files.createTempDirectory("alert-repo").toFile();
+        Git.cloneRepository()
+                .setURI(repoUrl)
+                .setDirectory(repoDir)
                 .call();
 
-        File rulesFile = new File(localPath, "alert_rules.yml");
+        // Читаем YAML
+        File alertFile = new File(repoDir, alertFilePath);
+        Yaml yaml = new Yaml(new SafeConstructor());
+        Map<String, Object> data;
 
-        // Добавляем алерт
-        List<String> lines = Files.readAllLines(rulesFile.toPath(), StandardCharsets.UTF_8);
-        String newAlert = """
-        - alert: DynamicAlertFromBot
-          expr: vector(1)
-          for: 5s
-          labels:
-            severity: info
-          annotations:
-            summary: "Добавлено из Telegram"
-            description: "Этот алерт добавлен ботом через /addAlert"
-        """;
+        try (InputStream input = new FileInputStream(alertFile)) {
+            data = yaml.load(input);
+        }
 
-        int insertIndex = lines.size() - 1;
-        lines.add(insertIndex, newAlert);
-        Files.write(rulesFile.toPath(), lines, StandardCharsets.UTF_8);
+        if (data == null) data = new HashMap<>();
+        List<Map<String, Object>> groups = (List<Map<String, Object>>) data.getOrDefault("groups", new ArrayList<>());
 
-        git.add().addFilepattern("alert_rules.yml").call();
-        git.commit().setMessage("Add alert via Telegram Bot").call();
+        // Ищем или создаём группу
+        Map<String, Object> targetGroup = null;
+        for (Map<String, Object> group : groups) {
+            if ("BotAlerts".equals(group.get("name"))) {
+                targetGroup = group;
+                break;
+            }
+        }
+        if (targetGroup == null) {
+            targetGroup = new LinkedHashMap<>();
+            targetGroup.put("name", "BotAlerts");
+            targetGroup.put("rules", new ArrayList<>());
+            groups.add(targetGroup);
+        }
+
+        List<Map<String, Object>> rules = (List<Map<String, Object>>) targetGroup.get("rules");
+
+        // Добавляем новый алерт
+        Map<String, Object> alert = new LinkedHashMap<>();
+        alert.put("alert", "DynamicAlertFromBot");
+        alert.put("expr", "vector(1)");
+        alert.put("for", "5s");
+
+        Map<String, String> labels = new LinkedHashMap<>();
+        labels.put("severity", "info");
+        alert.put("labels", labels);
+
+        Map<String, String> annotations = new LinkedHashMap<>();
+        annotations.put("summary", "Добавлено из Telegram");
+        annotations.put("description", "Этот алерт добавлен ботом через /addalert");
+        alert.put("annotations", annotations);
+
+        rules.add(alert);
+        data.put("groups", groups);
+
+        // Записываем обратно
+        DumperOptions options = new DumperOptions();
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        options.setPrettyFlow(true);
+        Representer representer = new Representer(options);
+        yaml = new Yaml(representer, options);
+
+        try (Writer writer = new FileWriter(alertFile)) {
+            yaml.dump(data, writer);
+        }
+
+        // Git commit & push
+        Git git = Git.open(repoDir);
+        git.add().addFilepattern(alertFilePath).call();
+        git.commit().setMessage("Добавлен алерт из Telegram бота").call();
         git.push().call();
 
-        // Удаляем временные файлы
-        FileUtils.deleteDirectory(localPath);
+        // Удаляем временный каталог
+        deleteDirectory(repoDir);
     }
+
+    private void deleteDirectory(File directory) {
+        if (directory.isDirectory()) {
+            for (File file : Objects.requireNonNull(directory.listFiles())) {
+                deleteDirectory(file);
+            }
+        }
+        directory.delete();
+    }
+
 
 
 
