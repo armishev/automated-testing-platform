@@ -102,7 +102,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
 
         LoadTestDraft loadDraft = loadTestSessions.get(chatId);
-        if (messageText.equalsIgnoreCase("/cancel")) {
+        if (messageText.equalsIgnoreCase("/cancelLoadTest")) {
             loadTestSessions.remove(chatId);
             sendText(chatId, "🚫 Создание нагрузочного теста отменено.");
             return true;
@@ -282,7 +282,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
 
         AlertDraft draft = alertSessions.get(chatId);
-        if (messageText.equalsIgnoreCase("/cancel")) {
+        if (messageText.equalsIgnoreCase("/cancelAddAlert")) {
             alertSessions.remove(chatId);
             sendText(chatId, "🚫 Создание алерта отменено.");
             return true;
