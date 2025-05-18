@@ -45,7 +45,7 @@ services:
       - selenoid-network
 
   jmeter:
-    image: justb4/jmeter:5.4.2
+    image: justb4/jmeter
     container_name: jmeter
     volumes:
       - ./jmeter:/testplan
