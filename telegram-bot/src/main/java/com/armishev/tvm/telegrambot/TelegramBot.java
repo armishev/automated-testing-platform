@@ -550,6 +550,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 deleteDirectory(file);
             }
         }
+
         directory.delete();
     }
 
