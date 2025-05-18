@@ -1,5 +1,6 @@
 package com.armishev.tvm.telegrambot;
 
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -16,6 +17,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import com.armishev.tvm.telegrambot.models.AlertDraft;
+import com.armishev.tvm.telegrambot.models.LoadTestDraft;
 import org.eclipse.jgit.api.Git;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,12 +51,15 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Value("${imagerenderer.url}")
     private String imageRendererUrl;
 
-    @Value("${git.repo.url}")
-    private String gitRepoUrl;
+    @Value("${git.repo.testproject.url}")
+    private String gitRepoTestProjectUrl;
+
+    @Value("${git.repo.atp.url}")
+    private String gitRepoATPUrl;
 
     private final Map<Long, AlertDraft> alertSessions = new HashMap<>();
     private final Map<Long, String> customDashboardUrls = new HashMap<>();
-
+    private final Map<Long, LoadTestDraft> loadTestSessions = new HashMap<>();
 
     public TelegramBot(@Value("${telegram.bot.token}") String botToken) {
         super(botToken);
@@ -71,7 +76,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText().trim();
             Long chatId = update.getMessage().getChatId();
-            String response;
+
+            if (processLoadTestDraft(messageText, chatId)) {
+                return;
+            }
 
 
             if (processAlertDraft(messageText, chatId)) {
@@ -82,9 +90,97 @@ public class TelegramBot extends TelegramLongPollingBot {
                 return;
             }
 
-            // Обработка команд
             handleBotCommand(messageText, chatId);
         }
+    }
+
+    private boolean processLoadTestDraft(String messageText, Long chatId) {
+        if (messageText.equalsIgnoreCase("/loadtest")) {
+            loadTestSessions.put(chatId, new LoadTestDraft());
+            loadTestSessions.get(chatId).setStep(1);
+            sendText(chatId, "📊 Укажи количество потоков (THREADS):");
+            return true;
+        }
+
+        LoadTestDraft loadDraft = loadTestSessions.get(chatId);
+        if (loadDraft != null) {
+            if (messageText.isBlank()) {
+                sendText(chatId, "❗ Значение не может быть пустым. Введите снова.");
+                return true;
+            }
+
+            switch (loadDraft.getStep()) {
+                case 1:
+                    if (!messageText.matches("\\d+")) {
+                        sendText(chatId, "❌ Укажи количество потоков числом. Например: 10");
+                        return true;
+                    }
+                    loadDraft.setThreads(messageText);
+                    loadDraft.setStep(2);
+                    sendText(chatId, "🌐 Укажи протокол (http/https):");
+                    break;
+                case 2:
+                    if (!messageText.equalsIgnoreCase("http") && !messageText.equalsIgnoreCase("https")) {
+                        sendText(chatId, "❌ Поддерживаются только 'http' или 'https'.");
+                        return true;
+                    }
+                    loadDraft.setProtocol(messageText.toLowerCase());
+                    loadDraft.setStep(3);
+                    sendText(chatId, "📡 Укажи домен или IP:");
+                    break;
+                case 3:
+                    if (!messageText.matches("^[\\w.-]+$")) {
+                        sendText(chatId, "❌ Неверный формат домена или IP. Пример: example.com или 192.168.0.1");
+                        return true;
+                    }
+                    loadDraft.setDomain(messageText);
+                    loadDraft.setStep(4);
+                    sendText(chatId, "📌 Укажи порт:");
+                    break;
+                case 4:
+                    if (!messageText.matches("\\d+")) {
+                        sendText(chatId, "❌ Порт должен быть числом. Например: 80");
+                        return true;
+                    }
+                    loadDraft.setPort(messageText);
+                    loadDraft.setStep(5);
+                    sendText(chatId, "📥 Укажи метод запроса (GET, POST и т.д.):");
+                    break;
+                case 5:
+                    if (!messageText.matches("(?i)GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD")) {
+                        sendText(chatId, "❌ Метод запроса должен быть одним из: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD");
+                        return true;
+                    }
+                    loadDraft.setMethod(messageText.toUpperCase());
+                    loadDraft.setStep(6);
+                    sendText(chatId, "📍 Укажи путь и query (например, /api/data?id=1):");
+                    break;
+                case 6:
+                    if (!messageText.startsWith("/")) {
+                        sendText(chatId, "❌ Путь должен начинаться с /");
+                        return true;
+                    }
+                    loadDraft.setPath(messageText);
+                    loadDraft.setStep(7);
+                    sendText(chatId, "⚠️ Подтвердить запуск нагрузки? Напиши `да` для подтверждения или `нет` для отмены.");
+                    break;
+                case 7:
+                    if (messageText.equalsIgnoreCase("да")) {
+                        try {
+                            String command = buildJMeterCommand(loadDraft);
+                            writeAndPushTriggerFile(command);
+                            sendText(chatId, "✅ Команда отправлена в Git! CI должен её выполнить.");
+                        } catch (Exception e) {
+                            sendText(chatId, "❌ Ошибка при формировании команды: " + e.getMessage());
+                        }
+                    } else {
+                        sendText(chatId, "❌ Запуск отменён.");
+                    }
+                    loadTestSessions.remove(chatId);
+                    break;
+            }
+        }
+        return false;
     }
 
     private void handleBotCommand(String messageText, Long chatId) {
@@ -105,7 +201,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                         "/setMetrics <url> - установить ссылку для команды /metrics\n" +
                         "/resetMetrics - сбросить ссылку на метрики до значения по умолчанию\n" +
                         "/addAlert - добавить тестовый алерт в репозиторий\n" +
-                        "/listAlerts - получить список алертовя";
+                        "/listAlerts - получить список алертов\n" +
+                        "/loadTest - запустить нагрузочный тест";
                 sendText(chatId, response);
                 break;
 
@@ -282,7 +379,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     public void addAlertToGitRepo(AlertDraft draft) throws Exception {
-        String repoUrl = gitRepoUrl;
+        String repoUrl = gitRepoTestProjectUrl;
         String alertFilePath = "alert_rules.yml";
 
         File repoDir = Files.createTempDirectory("alert-repo").toFile();
@@ -359,7 +456,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     public String listAlertsFromGit() throws Exception {
-        String repoUrl = gitRepoUrl;
+        String repoUrl = gitRepoTestProjectUrl;
         String alertFilePath = "alert_rules.yml";
 
         File repoDir = Files.createTempDirectory("alert-list").toFile();
@@ -398,6 +495,48 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         deleteDirectory(repoDir);
         return result.toString();
+    }
+
+    private String buildJMeterCommand(LoadTestDraft draft) {
+        return String.format(
+                "docker exec jmeter jmeter -n -t /testplan/template.jmx \\\n" +
+                        "  -JTHREADS=%s \\\n" +
+                        "  -JDOMAIN=%s \\\n" +
+                        "  -JPORT=%s \\\n" +
+                        "  -JPROTOCOL=%s \\\n" +
+                        "  -JPATH=\"%s\" \\\n" +
+                        "  -JMETHOD=%s \\\n" +
+                        "  -l /testplan/results.jtl \\\n" +
+                        "  -j /testplan/jmeter.log",
+                draft.getThreads(), draft.getDomain(), draft.getPort(),
+                draft.getProtocol(), draft.getPath(), draft.getMethod()
+        );
+    }
+
+    private void writeAndPushTriggerFile(String command) throws Exception {
+        String repoUrl = gitRepoATPUrl;
+        String triggerFilePath = "jmeter/trigger-jmeter.yml";
+
+        File repoDir = Files.createTempDirectory("jmeter-trigger").toFile();
+        Git.cloneRepository()
+                .setURI(repoUrl)
+                .setDirectory(repoDir)
+                .call();
+
+        File triggerFile = new File(repoDir, triggerFilePath);
+        triggerFile.getParentFile().mkdirs();
+
+        try (Writer writer = new BufferedWriter(new FileWriter(triggerFile))) {
+            writer.write("# Trigger file for JMeter load test via Telegram bot\n");
+            writer.write(command + "\n");
+        }
+
+        Git git = Git.open(repoDir);
+        git.add().addFilepattern(triggerFilePath).call();
+        git.commit().setMessage("Добавлен load test через Telegram Bot").call();
+        git.push().call();
+
+        deleteDirectory(repoDir);
     }
 
 

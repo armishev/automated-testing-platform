@@ -12,6 +12,8 @@ services:
       - telegram.bot.username=${TELEGRAM_BOT_USERNAME}
       - imagerenderer.url=${IMAGE_RENDERER_URL}
       - git.repo.url=${GIT_REPO_URL}
+      - git.repo.testproject.url=${GIT_REPO_TESTPROJECT_URL}
+      - git.repo.atp.url=${GIT_REPO_ATP_URL}
     networks:
       - selenoid-network
 
