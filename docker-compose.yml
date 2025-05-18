@@ -51,7 +51,7 @@ services:
       - ./jmeter:/testplan
     networks:
       - selenoid-network
-    command: sleep infinity
+    command: ["bash", "-c", "sleep infinity"]
 
 networks:
   selenoid-network:
