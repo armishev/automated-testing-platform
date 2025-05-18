@@ -282,7 +282,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
 
         AlertDraft draft = alertSessions.get(chatId);
-        if (messageText.equalsIgnoreCase("/exit")) {
+        if (messageText.equalsIgnoreCase("/cancel")) {
             alertSessions.remove(chatId);
             sendText(chatId, "🚫 Создание алерта отменено.");
             return true;
