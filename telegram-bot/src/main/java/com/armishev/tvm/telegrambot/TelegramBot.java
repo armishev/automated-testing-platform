@@ -53,6 +53,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private String gitRepoUrl;
 
     private final Map<Long, AlertDraft> alertSessions = new HashMap<>();
+    private final Map<Long, String> customDashboardUrls = new HashMap<>();
 
 
     public TelegramBot(@Value("${telegram.bot.token}") String botToken) {
@@ -139,6 +140,28 @@ public class TelegramBot extends TelegramLongPollingBot {
                 return;
             }
 
+            if (messageText.toLowerCase().startsWith("/setmetrics")) {
+                String[] parts = messageText.split("\\s+", 2);
+                if (parts.length < 2) {
+                    sendText(chatId, "❗ Пожалуйста, укажите ссылку после команды. Пример:\n/setmetrics http://example.com/dashboard");
+                } else {
+                    String url = parts[1];
+                    if (!url.startsWith("http")) {
+                        sendText(chatId, "❌ Это не похоже на корректную ссылку. Попробуйте снова.");
+                    } else {
+                        customDashboardUrls.put(chatId, url);
+                        sendText(chatId, "✅ Ссылка на дашборд сохранена!");
+                    }
+                }
+                return;
+            }
+
+            if (messageText.equalsIgnoreCase("/resetmetrics")) {
+                customDashboardUrls.remove(chatId);
+                sendText(chatId, "🔄 Ссылка сброшена на значение по умолчанию.");
+                return;
+            }
+
             // Обработка команд
             switch (messageText.toLowerCase()) {
                 case "/start":
@@ -153,6 +176,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                             "/help - список команд\n" +
                             "/test - выполнить тестовую команду\n" +
                             "/metrics - получить метрики в виде изображения\n" +
+                            "/setMetrics <url> - установить ссылку для команды /metrics\n" +
+                            "/resetmetrics - сбросить ссылку на метрики до значения по умолчанию\n" +
                             "/addAlert - добавить тестовый алерт в репозиторий\n" +
                             "/listAlerts - получить список алертовя";
                     sendText(chatId, response);
@@ -165,8 +190,8 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                 case "/metrics":
                     try {
-                        byte[] imageBytes = getScreenshot("http://147.45.150" +
-                                ".56:4000/public-dashboards/9191b094754e459688fa1aaeecb77794");
+                        String url = customDashboardUrls.getOrDefault(chatId, "http://147.45.150.56:4000/public-dashboards/9191b094754e459688fa1aaeecb77794");
+                        byte[] imageBytes = getScreenshot(url);
                         sendPhoto(chatId, imageBytes);
                     } catch (Exception e) {
                         logger.error("Ошибка при получении скриншота: {}", e.getMessage());
