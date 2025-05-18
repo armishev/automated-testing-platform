@@ -1,0 +1,20 @@
+name: JMeter Load Test
+
+on:
+  push:
+    paths:
+      - 'jmeter/trigger-jmeter.yml'
+
+jobs:
+  run-loadtest:
+    runs-on: self-hosted
+
+    steps:
+      - name: Клонировать репозиторий
+        uses: actions/checkout@v3
+
+      - name: Прочитать команду из trigger-jmeter.yml и выполнить
+        run: |
+          CMD=$(cat jmeter/trigger-jmeter.yml)
+          echo "Выполняю команду: $CMD"
+          eval "$CMD"
