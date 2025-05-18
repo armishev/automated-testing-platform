@@ -28,6 +28,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 import org.yaml.snakeyaml.representer.Representer;
@@ -175,7 +176,8 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         // Читаем YAML
         File alertFile = new File(repoDir, alertFilePath);
-        Yaml yaml = new Yaml(new SafeConstructor());
+        LoaderOptions loaderOptions = new LoaderOptions();
+        Yaml yaml = new Yaml(new SafeConstructor(loaderOptions));
         Map<String, Object> data;
 
         try (InputStream input = new FileInputStream(alertFile)) {
