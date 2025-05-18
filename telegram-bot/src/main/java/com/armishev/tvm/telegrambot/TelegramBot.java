@@ -55,7 +55,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final Map<Long, AlertDraft> alertSessions = new HashMap<>();
 
 
-
     public TelegramBot(@Value("${telegram.bot.token}") String botToken) {
         super(botToken);
         this.botToken = botToken;
@@ -94,16 +93,29 @@ public class TelegramBot extends TelegramLongPollingBot {
                         sendText(chatId, "🔍 Введите PromQL выражение (expr):");
                         break;
                     case 2:
+                        if (!messageText.matches("^[a-zA-Z_]+\\(.*\\)$")) {
+                            sendText(chatId, "❌ Похоже, это не PromQL. Пример: rate(http_requests_total[5m])");
+                            return;
+                        }
                         draft.setExpr(messageText);
                         draft.setStep(3);
                         sendText(chatId, "⏱️ Введите длительность (например, 30s):");
                         break;
                     case 3:
+                        if (!messageText.matches("^\\d+[smhd]$")) {
+                            sendText(chatId, "❌ Неверный формат. Пример: 30s, 5m, 1h, 1d");
+                            return;
+                        }
                         draft.setDuration(messageText);
                         draft.setStep(4);
                         sendText(chatId, "⚠️ Введите уровень severity (info, warning, critical):");
                         break;
                     case 4:
+                        String sev = messageText.toLowerCase();
+                        if (!List.of("info", "warning", "critical").contains(sev)) {
+                            sendText(chatId, "❌ Уровень может быть только: info, warning, critical");
+                            return;
+                        }
                         draft.setSeverity(messageText);
                         draft.setStep(5);
                         sendText(chatId, "📝 Введите краткое описание (summary):");
@@ -128,13 +140,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                 return;
             }
 
-
-
-
             // Обработка команд
             switch (messageText.toLowerCase()) {
                 case "/start":
-                    response = "Привет! Я бот для автоматизированного тестирования. Введите /help для получения списка команд.";
+                    response = "Привет! Я бот для автоматизированного тестирования. Введите /help для получения " +
+                            "списка команд.";
                     sendText(chatId, response);
                     break;
 
@@ -155,7 +165,8 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                 case "/metrics":
                     try {
-                        byte[] imageBytes = getScreenshot("http://147.45.150.56:4000/public-dashboards/9191b094754e459688fa1aaeecb77794");
+                        byte[] imageBytes = getScreenshot("http://147.45.150" +
+                                ".56:4000/public-dashboards/9191b094754e459688fa1aaeecb77794");
                         sendPhoto(chatId, imageBytes);
                     } catch (Exception e) {
                         logger.error("Ошибка при получении скриншота: {}", e.getMessage());
@@ -232,7 +243,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             data = yaml.load(input);
         }
 
-        if (data == null) data = new HashMap<>();
+        if (data == null) {
+            data = new HashMap<>();
+        }
         List<Map<String, Object>> groups = (List<Map<String, Object>>) data.getOrDefault("groups", new ArrayList<>());
 
         // Ищем или создаём группу
@@ -289,8 +302,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
 
-
-
     private void deleteDirectory(File directory) {
         if (directory.isDirectory()) {
             for (File file : Objects.requireNonNull(directory.listFiles())) {
@@ -299,8 +310,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
         directory.delete();
     }
-
-
 
 
 }
