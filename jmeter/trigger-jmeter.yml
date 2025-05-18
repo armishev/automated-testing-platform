@@ -1,9 +1,10 @@
+# Trigger file for JMeter load test via Telegram bot
 docker exec jmeter jmeter -n -t /testplan/template.jmx \
--JTHREADS=10 \
--JDOMAIN=147.45.150.56 \
--JPORT=8080 \
--JPROTOCOL=http \
--JPATH="/v1/api/trade/315551115?currencyId=4&operation=buy" \
--JMETHOD=GET \
--l /testplan/results.jtl \
--j /testplan/jmeter.log
+  -JTHREADS=10 \
+  -JDOMAIN=147.45.150.56 \
+  -JPORT=8080 \
+  -JPROTOCOL=http \
+  -JPATH="/v1/api/trade/315551115?currencyId=4&operation=buy" \
+  -JMETHOD=GET \
+  -l /testplan/results.jtl \
+  -j /testplan/jmeter.log
