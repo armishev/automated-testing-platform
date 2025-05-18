@@ -19,6 +19,8 @@ import com.armishev.tvm.telegrambot.models.AlertDraft;
 import org.eclipse.jgit.api.Git;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -27,8 +29,6 @@ import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -74,148 +74,169 @@ public class TelegramBot extends TelegramLongPollingBot {
             String response;
 
 
-            if (messageText.equalsIgnoreCase("/addalert")) {
-                alertSessions.put(chatId, new AlertDraft(null, null, null, null, null, null, 1));
-                sendText(chatId, "🛠️ Введите название алерта:");
+            if (processAlertDraft(messageText, chatId)) {
                 return;
             }
 
-            AlertDraft draft = alertSessions.get(chatId);
-            if (draft != null) {
-                if (messageText.isBlank()) {
-                    sendText(chatId, "❗ Значение не может быть пустым. Пожалуйста, введите снова.");
-                    return;
-                }
-                switch (draft.getStep()) {
-                    case 1:
-                        draft.setAlertName(messageText + "_" + UUID.randomUUID().toString().substring(0, 5));
-                        draft.setStep(2);
-                        sendText(chatId, "🔍 Введите PromQL выражение (expr):");
-                        break;
-                    case 2:
-                        if (!messageText.matches("^[a-zA-Z_]+\\(.*\\)$")) {
-                            sendText(chatId, "❌ Похоже, это не PromQL. Пример: rate(http_requests_total[5m])");
-                            return;
-                        }
-                        draft.setExpr(messageText);
-                        draft.setStep(3);
-                        sendText(chatId, "⏱️ Введите длительность (например, 30s):");
-                        break;
-                    case 3:
-                        if (!messageText.matches("^\\d+[smhd]$")) {
-                            sendText(chatId, "❌ Неверный формат. Пример: 30s, 5m, 1h, 1d");
-                            return;
-                        }
-                        draft.setDuration(messageText);
-                        draft.setStep(4);
-                        sendText(chatId, "⚠️ Введите уровень severity (info, warning, critical):");
-                        break;
-                    case 4:
-                        String sev = messageText.toLowerCase();
-                        if (!List.of("info", "warning", "critical").contains(sev)) {
-                            sendText(chatId, "❌ Уровень может быть только: info, warning, critical");
-                            return;
-                        }
-                        draft.setSeverity(messageText);
-                        draft.setStep(5);
-                        sendText(chatId, "📝 Введите краткое описание (summary):");
-                        break;
-                    case 5:
-                        draft.setSummary(messageText);
-                        draft.setStep(6);
-                        sendText(chatId, "📄 Введите полное описание (description):");
-                        break;
-                    case 6:
-                        draft.setDescription(messageText);
-                        sendText(chatId, "✅ Формирую алерт...");
-                        try {
-                            addAlertToGitRepo(draft);
-                            sendText(chatId, "✅ Алерт добавлен и запушен в Git.");
-                        } catch (Exception e) {
-                            sendText(chatId, "❌ Ошибка при добавлении алерта: " + e.getMessage());
-                        }
-                        alertSessions.remove(chatId);
-                        break;
-                }
-                return;
-            }
-
-            if (messageText.toLowerCase().startsWith("/setmetrics")) {
-                String[] parts = messageText.split("\\s+", 2);
-                if (parts.length < 2) {
-                    sendText(chatId, "❗ Пожалуйста, укажите ссылку после команды. Пример:\n/setmetrics http://example.com/dashboard");
-                } else {
-                    String url = parts[1];
-                    if (!url.startsWith("http")) {
-                        sendText(chatId, "❌ Это не похоже на корректную ссылку. Попробуйте снова.");
-                    } else {
-                        customDashboardUrls.put(chatId, url);
-                        sendText(chatId, "✅ Ссылка на дашборд сохранена!");
-                    }
-                }
-                return;
-            }
-
-            if (messageText.equalsIgnoreCase("/resetmetrics")) {
-                customDashboardUrls.remove(chatId);
-                sendText(chatId, "🔄 Ссылка сброшена на значение по умолчанию.");
+            if (processMetricsCommand(messageText, chatId)) {
                 return;
             }
 
             // Обработка команд
-            switch (messageText.toLowerCase()) {
-                case "/start":
-                    response = "Привет! Я бот для автоматизированного тестирования. Введите /help для получения " +
-                            "списка команд.";
-                    sendText(chatId, response);
-                    break;
+            handleBotCommand(messageText, chatId);
+        }
+    }
 
-                case "/help":
-                    response = "Доступные команды:\n" +
-                            "/start - начать работу с ботом\n" +
-                            "/help - список команд\n" +
-                            "/test - выполнить тестовую команду\n" +
-                            "/metrics - получить метрики в виде изображения\n" +
-                            "/setMetrics <url> - установить ссылку для команды /metrics\n" +
-                            "/resetmetrics - сбросить ссылку на метрики до значения по умолчанию\n" +
-                            "/addAlert - добавить тестовый алерт в репозиторий\n" +
-                            "/listAlerts - получить список алертовя";
-                    sendText(chatId, response);
-                    break;
+    private void handleBotCommand(String messageText, Long chatId) {
+        String response;
+        switch (messageText.toLowerCase()) {
+            case "/start":
+                response = "Привет! Я бот для автоматизированного тестирования. Введите /help для получения " +
+                        "списка команд.";
+                sendText(chatId, response);
+                break;
 
-                case "/test":
-                    response = "Тестовая команда выполнена!";
-                    sendText(chatId, response);
-                    break;
+            case "/help":
+                response = "Доступные команды:\n" +
+                        "/start - начать работу с ботом\n" +
+                        "/help - список команд\n" +
+                        "/test - выполнить тестовую команду\n" +
+                        "/metrics - получить метрики в виде изображения\n" +
+                        "/setMetrics <url> - установить ссылку для команды /metrics\n" +
+                        "/resetMetrics - сбросить ссылку на метрики до значения по умолчанию\n" +
+                        "/addAlert - добавить тестовый алерт в репозиторий\n" +
+                        "/listAlerts - получить список алертовя";
+                sendText(chatId, response);
+                break;
 
-                case "/metrics":
-                    try {
-                        String url = customDashboardUrls.getOrDefault(chatId, "http://147.45.150.56:4000/public-dashboards/9191b094754e459688fa1aaeecb77794");
-                        byte[] imageBytes = getScreenshot(url);
-                        sendPhoto(chatId, imageBytes);
-                    } catch (Exception e) {
-                        logger.error("Ошибка при получении скриншота: {}", e.getMessage());
-                        sendText(chatId, "Произошла ошибка при создании скриншота.");
+            case "/test":
+                response = "Тестовая команда выполнена!";
+                sendText(chatId, response);
+                break;
+
+            case "/metrics":
+                try {
+                    String url = customDashboardUrls.getOrDefault(chatId, "http://147.45.150" +
+                            ".56:4000/public-dashboards/9191b094754e459688fa1aaeecb77794");
+                    byte[] imageBytes = getScreenshot(url);
+                    sendPhoto(chatId, imageBytes);
+                } catch (Exception e) {
+                    logger.error("Ошибка при получении скриншота: {}", e.getMessage());
+                    sendText(chatId, "Произошла ошибка при создании скриншота.");
+                }
+                break;
+
+            case "/listalerts":
+                sendText(chatId, "📋 Получаю список алертов...");
+                try {
+                    String list = listAlertsFromGit();
+                    sendText(chatId, list);
+                } catch (Exception e) {
+                    logger.error("Ошибка при получении алертов: {}", e.getMessage());
+                    sendText(chatId, "❌ Ошибка при получении списка алертов.");
+                }
+                break;
+
+            default:
+                response = "Неизвестная команда. Введите /help для списка доступных команд.";
+                sendText(chatId, response);
+                break;
+        }
+    }
+
+    private boolean processMetricsCommand(String messageText, Long chatId) {
+        if (messageText.toLowerCase().startsWith("/setmetrics")) {
+            String[] parts = messageText.split("\\s+", 2);
+            if (parts.length < 2) {
+                sendText(chatId, "❗ Пожалуйста, укажите ссылку после команды. Пример:\n/setmetrics http://example" +
+                        ".com/dashboard");
+            } else {
+                String url = parts[1];
+                if (!url.startsWith("http")) {
+                    sendText(chatId, "❌ Это не похоже на корректную ссылку. Попробуйте снова.");
+                } else {
+                    customDashboardUrls.put(chatId, url);
+                    sendText(chatId, "✅ Ссылка на дашборд сохранена!");
+                }
+            }
+            return true;
+        }
+
+        if (messageText.equalsIgnoreCase("/resetmetrics")) {
+            customDashboardUrls.remove(chatId);
+            sendText(chatId, "🔄 Ссылка сброшена на значение по умолчанию.");
+            return true;
+        }
+        return false;
+    }
+
+    private boolean processAlertDraft(String messageText, Long chatId) {
+        if (messageText.equalsIgnoreCase("/addalert")) {
+            alertSessions.put(chatId, new AlertDraft(null, null, null, null, null, null, 1));
+            sendText(chatId, "🛠️ Введите название алерта:");
+            return true;
+        }
+
+        AlertDraft draft = alertSessions.get(chatId);
+        if (draft != null) {
+            if (messageText.isBlank()) {
+                sendText(chatId, "❗ Значение не может быть пустым. Пожалуйста, введите снова.");
+                return true;
+            }
+            switch (draft.getStep()) {
+                case 1:
+                    draft.setAlertName(messageText + "_" + UUID.randomUUID().toString().substring(0, 5));
+                    draft.setStep(2);
+                    sendText(chatId, "🔍 Введите PromQL выражение (expr):");
+                    break;
+                case 2:
+                    if (!messageText.matches("^[a-zA-Z_]+\\(.*\\)$")) {
+                        sendText(chatId, "❌ Похоже, это не PromQL. Пример: rate(http_requests_total[5m])");
+                        return true;
                     }
+                    draft.setExpr(messageText);
+                    draft.setStep(3);
+                    sendText(chatId, "⏱️ Введите длительность (например, 30s):");
                     break;
-
-                case "/listalerts":
-                    sendText(chatId, "📋 Получаю список алертов...");
-                    try {
-                        String list = listAlertsFromGit();
-                        sendText(chatId, list);
-                    } catch (Exception e) {
-                        logger.error("Ошибка при получении алертов: {}", e.getMessage());
-                        sendText(chatId, "❌ Ошибка при получении списка алертов.");
+                case 3:
+                    if (!messageText.matches("^\\d+[smhd]$")) {
+                        sendText(chatId, "❌ Неверный формат. Пример: 30s, 5m, 1h, 1d");
+                        return true;
                     }
+                    draft.setDuration(messageText);
+                    draft.setStep(4);
+                    sendText(chatId, "⚠️ Введите уровень severity (info, warning, critical):");
                     break;
-
-                default:
-                    response = "Неизвестная команда. Введите /help для списка доступных команд.";
-                    sendText(chatId, response);
+                case 4:
+                    String sev = messageText.toLowerCase();
+                    if (!List.of("info", "warning", "critical").contains(sev)) {
+                        sendText(chatId, "❌ Уровень может быть только: info, warning, critical");
+                        return true;
+                    }
+                    draft.setSeverity(messageText);
+                    draft.setStep(5);
+                    sendText(chatId, "📝 Введите краткое описание (summary):");
+                    break;
+                case 5:
+                    draft.setSummary(messageText);
+                    draft.setStep(6);
+                    sendText(chatId, "📄 Введите полное описание (description):");
+                    break;
+                case 6:
+                    draft.setDescription(messageText);
+                    sendText(chatId, "✅ Формирую алерт...");
+                    try {
+                        addAlertToGitRepo(draft);
+                        sendText(chatId, "✅ Алерт добавлен и запушен в Git.");
+                    } catch (Exception e) {
+                        sendText(chatId, "❌ Ошибка при добавлении алерта: " + e.getMessage());
+                    }
+                    alertSessions.remove(chatId);
                     break;
             }
+            return true;
         }
+        return false;
     }
 
     // Метод для отправки текстового сообщения
