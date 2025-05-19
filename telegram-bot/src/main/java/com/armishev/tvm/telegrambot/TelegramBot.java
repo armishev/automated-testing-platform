@@ -366,7 +366,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private byte[] getScreenshot(String url, Long chatId) {
         RestTemplate restTemplate = new RestTemplate();
-        sendText(chatId, "✅ Отправляю запрос на получение актуального состояния метрик.");
+        sendText(chatId, "⌛ Отправляю запрос на получение актуального состояния метрик.");
         // Формируем URL запроса к image-rendererр:
         String requestUrl = UriComponentsBuilder
                 .fromHttpUrl(imageRendererUrl)
