@@ -225,7 +225,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                     byte[] imageBytes = getScreenshot(url, chatId);
                     sendPhoto(chatId, imageBytes);
-                    sendText(chatId, "✅Запрос успешно выполнен");
+                    sendText(chatId, "✅Запрос успешно выполнен.");
                 } catch (Exception e) {
                     logger.error("Ошибка при получении скриншота: {}", e.getMessage());
                     sendText(chatId, "❌ Произошла ошибка при создании скриншота.");
