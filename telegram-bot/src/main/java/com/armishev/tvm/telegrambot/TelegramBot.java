@@ -222,11 +222,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                 try {
                     String url = customDashboardUrls.getOrDefault(chatId, "http://147.45.150" +
                             ".56:4000/public-dashboards/9191b094754e459688fa1aaeecb77794");
+
                     byte[] imageBytes = getScreenshot(url);
                     sendPhoto(chatId, imageBytes);
+                    sendText(chatId, "✅Запрос успешно выполнен");
                 } catch (Exception e) {
                     logger.error("Ошибка при получении скриншота: {}", e.getMessage());
-                    sendText(chatId, "Произошла ошибка при создании скриншота.");
+                    sendText(chatId, "❌ Произошла ошибка при создании скриншота.");
                 }
                 break;
 
@@ -234,6 +236,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendText(chatId, "📋 Получаю список алертов...");
                 try {
                     String list = listAlertsFromGit();
+
                     sendText(chatId, list);
                 } catch (Exception e) {
                     logger.error("Ошибка при получении алертов: {}", e.getMessage());
@@ -364,15 +367,15 @@ public class TelegramBot extends TelegramLongPollingBot {
     // Метод для получения скриншота от сервиса image-renderer
     private byte[] getScreenshot(String url) {
         RestTemplate restTemplate = new RestTemplate();
+        sendText(chatId, "✅ Отправляю запрос на получение актуального состояния метрик.");
         String requestUrl = UriComponentsBuilder
                 .fromHttpUrl(imageRendererUrl)
                 .path("/api/render")
                 .queryParam("url", url)
                 .build()
                 .toUriString();
-        // Формируем URL запроса к image-renderer, например:
+        // Формируем URL запроса к image-rendererр:
         logger.info("requestUrl: {}", requestUrl);
-        // Отправляем GET запрос, ожидаем byte[]
         return restTemplate.getForObject(requestUrl, byte[].class);
     }
 
@@ -380,7 +383,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void sendPhoto(Long chatId, byte[] imageBytes) {
         SendPhoto sendPhoto = new SendPhoto();
         sendPhoto.setChatId(chatId.toString());
-        // Оборачиваем байты в InputStream и задаем имя файла
         sendPhoto.setPhoto(new InputFile(new ByteArrayInputStream(imageBytes), "screenshot.png"));
         try {
             execute(sendPhoto);
