@@ -206,9 +206,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 response = "Доступные команды:\n" +
                         "/start - начать работу с ботом\n" +
                         "/help - список команд\n" +
-                        "/test - выполнить тестовую команду\n" +
                         "/metrics - получить метрики в виде изображения\n" +
                         "/setMetrics <url> - установить ссылку для команды /metrics\n" +
+                        "/GetMetricsUrl - получить текущую ссылку для метрик\n" +
                         "/resetMetrics - сбросить ссылку на метрики до значения по умолчанию\n" +
                         "/addAlert - добавить тестовый алерт в репозиторий\n" +
                         "/listAlerts - получить список алертов\n" +
