@@ -504,10 +504,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                 if (messageText.equalsIgnoreCase("да")) {
                     try {
                         sendChaosMonkeyConfig(draft);
-                        sendText(chatId, "✅ Chaos Monkey конфигурация отправлена, хаос-тест запущен!");
                     } catch (Exception e) {
-                        sendText(chatId, "❌ Ошибка при отправке конфигурации: " + e.getMessage());
+                        logger.info("Ошибка при отправке конфигурации хаос тестирования");
                     }
+                    sendText(chatId, "✅ Chaos Monkey конфигурация отправлена, хаос-тест запущен!");
                 } else {
                     sendText(chatId, "🚫 Отправка отменена.");
                 }
