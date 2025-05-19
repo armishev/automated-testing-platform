@@ -57,6 +57,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Value("${git.repo.atp.url}")
     private String gitRepoATPUrl;
 
+    private static final String DEFAULT_METRICS_URL = "http://147.45.150.56:4000/public-dashboards/9191b094754e459688fa1aaeecb77794";
+
+
     private final Map<Long, AlertDraft> alertSessions = new HashMap<>();
     private final Map<Long, String> customDashboardUrls = new HashMap<>();
     private final Map<Long, LoadTestDraft> loadTestSessions = new HashMap<>();
@@ -220,8 +223,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             case "/metrics":
                 try {
-                    String url = customDashboardUrls.getOrDefault(chatId, "http://147.45.150" +
-                            ".56:4000/public-dashboards/9191b094754e459688fa1aaeecb77794");
+                    String url = customDashboardUrls.getOrDefault(chatId, DEFAULT_METRICS_URL);
 
                     byte[] imageBytes = getScreenshot(url, chatId);
                     sendPhoto(chatId, imageBytes);
@@ -231,6 +233,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                     sendText(chatId, "❌ Произошла ошибка при создании скриншота.");
                 }
                 break;
+
+            case "/getmetricsurl":
+                String currentUrl = customDashboardUrls.getOrDefault(chatId, DEFAULT_METRICS_URL);
+                response = "🔗 Текущая ссылка на метрики:\n" + currentUrl;
+                sendText(chatId, response);
+                break;
+
 
             case "/listalerts":
                 sendText(chatId, "📋 Получаю список алертов...");
@@ -243,6 +252,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     sendText(chatId, "❌ Ошибка при получении списка алертов.");
                 }
                 break;
+
 
             default:
                 response = "Неизвестная команда. Введите /help для списка доступных команд.";
