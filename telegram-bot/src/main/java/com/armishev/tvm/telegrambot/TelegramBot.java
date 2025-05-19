@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import com.armishev.tvm.telegrambot.models.AlertDraft;
+import com.armishev.tvm.telegrambot.models.ChaosDraft;
 import com.armishev.tvm.telegrambot.models.LoadTestDraft;
 import org.eclipse.jgit.api.Git;
 import org.slf4j.Logger;
@@ -57,12 +58,17 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Value("${git.repo.atp.url}")
     private String gitRepoATPUrl;
 
+    @Value("${chaos.monkey.url}")
+    private String chaosMonkeyUrl;
+
     private static final String DEFAULT_METRICS_URL = "http://147.45.150.56:4000/public-dashboards/9191b094754e459688fa1aaeecb77794";
 
 
     private final Map<Long, AlertDraft> alertSessions = new HashMap<>();
     private final Map<Long, String> customDashboardUrls = new HashMap<>();
     private final Map<Long, LoadTestDraft> loadTestSessions = new HashMap<>();
+    private final Map<Long, ChaosDraft> chaosSessions = new HashMap<>();
+
 
     public TelegramBot(@Value("${telegram.bot.token}") String botToken) {
         super(botToken);
@@ -85,6 +91,10 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
 
             if (processAlertDraft(messageText, chatId)) {
+                return;
+            }
+
+            if (processChaosDraft(messageText, chatId)) {
                 return;
             }
 
@@ -212,7 +222,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                         "/resetMetrics - сбросить ссылку на метрики до значения по умолчанию\n" +
                         "/addAlert - добавить тестовый алерт в репозиторий\n" +
                         "/listAlerts - получить список алертов\n" +
-                        "/loadTest - запустить нагрузочный тест";
+                        "/loadTest - запустить нагрузочный тест\n" +
+                        "/chaosTest - запустить хаос-тестирование";
                 sendText(chatId, response);
                 break;
 
@@ -359,6 +370,183 @@ public class TelegramBot extends TelegramLongPollingBot {
             return true;
         }
         return false;
+    }
+
+    private boolean processChaosDraft(String messageText, Long chatId) {
+        if (messageText.equalsIgnoreCase("/chaosTest")) {
+            chaosSessions.put(chatId, new ChaosDraft(null, null, null, null, null, null, null, null, null, null, null, 1));
+            sendText(chatId, "⚙️ Включить задержку (latency)? (да/нет):");
+            return true;
+        }
+
+        ChaosDraft draft = chaosSessions.get(chatId);
+        if (messageText.equalsIgnoreCase("/cancelChaosTest")) {
+            alertSessions.remove(chatId);
+            sendText(chatId, "🚫 Создание хаос-теста отменено.");
+            return true;
+        }
+        if (draft == null) return false;
+
+        if (messageText.isBlank()) {
+            sendText(chatId, "❗ Пустое значение. Введите снова.");
+            return true;
+        }
+
+        switch (draft.getStep()) {
+            case 1:
+                if (!messageText.equalsIgnoreCase("да") && !messageText.equalsIgnoreCase("нет")) {
+                    sendText(chatId, "❌ Введите 'да' или 'нет'.");
+                    return true;
+                }
+                draft.setLatencyActive(messageText.equalsIgnoreCase("да"));
+                draft.setStep(2);
+                sendText(chatId, "⏱️ Укажи минимальную задержку (мс):");
+                break;
+
+            case 2:
+                Integer min = parseIntOrPrompt(messageText, chatId);
+                if (min == null) return true;
+                draft.setLatencyRangeStart(min);
+                draft.setStep(3);
+                sendText(chatId, "⏱️ Укажи максимальную задержку (мс):");
+                break;
+
+            case 3:
+                Integer max = parseIntOrPrompt(messageText, chatId);
+                if (max == null) return true;
+                if (max < draft.getLatencyRangeStart()) {
+                    sendText(chatId, "❌ Максимум не может быть меньше минимума.");
+                    return true;
+                }
+                draft.setLatencyRangeEnd(max);
+                draft.setStep(4);
+                sendText(chatId, "💥 Бросать исключения? (да/нет):");
+                break;
+
+            case 4:
+                if (!messageText.equalsIgnoreCase("да") && !messageText.equalsIgnoreCase("нет")) {
+                    sendText(chatId, "❌ Введите 'да' или 'нет'.");
+                    return true;
+                }
+                draft.setExceptionsActive(messageText.equalsIgnoreCase("да"));
+                draft.setStep(5);
+                sendText(chatId, "💣 Укажи класс исключения (например, java.lang.RuntimeException):");
+                break;
+
+            case 5:
+                if (!messageText.contains(".")) {
+                    sendText(chatId, "❌ Это не похоже на полный путь класса. Пример: java.lang.RuntimeException");
+                    return true;
+                }
+                draft.setExceptionClass(messageText);
+                draft.setStep(6);
+                sendText(chatId, "🧠 Включить загрузку памяти? (да/нет):");
+                break;
+
+            case 6:
+                if (!messageText.equalsIgnoreCase("да") && !messageText.equalsIgnoreCase("нет")) {
+                    sendText(chatId, "❌ Введите 'да' или 'нет'.");
+                    return true;
+                }
+                draft.setMemoryActive(messageText.equalsIgnoreCase("да"));
+                draft.setStep(7);
+                sendText(chatId, "⌛ Время загрузки памяти (мс):");
+                break;
+
+            case 7:
+                Integer memMs = parseIntOrPrompt(messageText, chatId);
+                if (memMs == null) return true;
+                draft.setMemoryMillisecondsHold(memMs);
+                draft.setStep(8);
+                sendText(chatId, "🧮 Включить загрузку CPU? (да/нет):");
+                break;
+
+            case 8:
+                if (!messageText.equalsIgnoreCase("да") && !messageText.equalsIgnoreCase("нет")) {
+                    sendText(chatId, "❌ Введите 'да' или 'нет'.");
+                    return true;
+                }
+                draft.setCpuActive(messageText.equalsIgnoreCase("да"));
+                draft.setStep(9);
+                sendText(chatId, "⌛ Время загрузки CPU (мс):");
+                break;
+
+            case 9:
+                Integer cpuMs = parseIntOrPrompt(messageText, chatId);
+                if (cpuMs == null) return true;
+                draft.setCpuMillisecondsHold(cpuMs);
+                draft.setStep(10);
+                sendText(chatId, "☠️ Завершать приложение (killApplication)? (да/нет):");
+                break;
+
+            case 10:
+                if (!messageText.equalsIgnoreCase("да") && !messageText.equalsIgnoreCase("нет")) {
+                    sendText(chatId, "❌ Введите 'да' или 'нет'.");
+                    return true;
+                }
+                draft.setKillApplicationActive(messageText.equalsIgnoreCase("да"));
+                draft.setStep(11);
+                sendText(chatId, "⚙️ Уровень агрессии (0–10):");
+                break;
+
+            case 11:
+                Integer level = parseIntOrPrompt(messageText, chatId);
+                if (level == null || level < 0 || level > 10) {
+                    sendText(chatId, "❌ Уровень агрессии должен быть от 0 до 10.");
+                    return true;
+                }
+                draft.setLevel(level);
+                draft.setStep(12);
+                sendText(chatId, "✅ Подтвердить отправку конфигурации? (да/нет):");
+                break;
+
+            case 12:
+                if (messageText.equalsIgnoreCase("да")) {
+                    try {
+                        sendChaosMonkeyConfig(draft);
+                        sendText(chatId, "✅ Chaos Monkey конфигурация отправлена, хаос-тест запущен!");
+                    } catch (Exception e) {
+                        sendText(chatId, "❌ Ошибка при отправке конфигурации: " + e.getMessage());
+                    }
+                } else {
+                    sendText(chatId, "🚫 Отправка отменена.");
+                }
+                chaosSessions.remove(chatId);
+                break;
+        }
+
+        return true;
+    }
+
+
+    private void sendChaosMonkeyConfig(ChaosDraft draft) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("latencyActive", draft.getLatencyActive());
+        payload.put("latencyRangeStart", draft.getLatencyRangeStart());
+        payload.put("latencyRangeEnd", draft.getLatencyRangeEnd());
+        payload.put("exceptionsActive", draft.getExceptionsActive());
+        payload.put("exceptionClass", draft.getExceptionClass());
+        payload.put("memoryActive", draft.getMemoryActive());
+        payload.put("memoryMillisecondsHold", draft.getMemoryMillisecondsHold());
+        payload.put("cpuActive", draft.getCpuActive());
+        payload.put("cpuMillisecondsHold", draft.getCpuMillisecondsHold());
+        payload.put("killApplicationActive", draft.getKillApplicationActive());
+        payload.put("level", draft.getLevel());
+
+        new RestTemplate().postForEntity(
+                chaosMonkeyUrl + "/actuator/chaosMonkey/assaults",
+                payload,
+                Void.class
+        );
+    }
+
+    private Integer parseIntOrPrompt(String input, Long chatId) {
+        try {
+            return Integer.parseInt(input.trim());
+        } catch (NumberFormatException e) {
+            sendText(chatId, "❗ Введите число. Попробуй снова:");
+            throw e;
+        }
     }
 
     // Метод для отправки текстового сообщения
