@@ -223,7 +223,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     String url = customDashboardUrls.getOrDefault(chatId, "http://147.45.150" +
                             ".56:4000/public-dashboards/9191b094754e459688fa1aaeecb77794");
 
-                    byte[] imageBytes = getScreenshot(url);
+                    byte[] imageBytes = getScreenshot(url, chatId);
                     sendPhoto(chatId, imageBytes);
                     sendText(chatId, "✅Запрос успешно выполнен");
                 } catch (Exception e) {
@@ -364,17 +364,16 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    // Метод для получения скриншота от сервиса image-renderer
-    private byte[] getScreenshot(String url) {
+    private byte[] getScreenshot(String url, Long chatId) {
         RestTemplate restTemplate = new RestTemplate();
         sendText(chatId, "✅ Отправляю запрос на получение актуального состояния метрик.");
+        // Формируем URL запроса к image-rendererр:
         String requestUrl = UriComponentsBuilder
                 .fromHttpUrl(imageRendererUrl)
                 .path("/api/render")
                 .queryParam("url", url)
                 .build()
                 .toUriString();
-        // Формируем URL запроса к image-rendererр:
         logger.info("requestUrl: {}", requestUrl);
         return restTemplate.getForObject(requestUrl, byte[].class);
     }
