@@ -14,6 +14,7 @@ services:
       - git.repo.url=${GIT_REPO_URL}
       - git.repo.testproject.url=${GIT_REPO_TESTPROJECT_URL}
       - git.repo.atp.url=${GIT_REPO_ATP_URL}
+      - chaos.monkey.url=${CHAOS_MONKEY_URL}
     networks:
       - selenoid-network
 

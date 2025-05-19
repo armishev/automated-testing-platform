@@ -381,7 +381,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         ChaosDraft draft = chaosSessions.get(chatId);
         if (messageText.equalsIgnoreCase("/cancelChaosTest")) {
-            alertSessions.remove(chatId);
+            chaosSessions.remove(chatId);
             sendText(chatId, "🚫 Создание хаос-теста отменено.");
             return true;
         }

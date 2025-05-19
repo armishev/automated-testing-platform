@@ -53,5 +53,6 @@ jobs:
           IMAGE_RENDERER_URL: ${{ secrets.IMAGE_RENDERER_URL }}
           GIT_REPO_ATP_URL: ${{ secrets.GIT_REPO_ATP_URL }}
           GIT_REPO_TESTPROJECT_URL: ${{ secrets.GIT_REPO_TESTPROJECT_URL }}
+          CHAOS_MONKEY_URL: ${{ secrets.CHAOS_MONKEY_URL }}
         run: |
           docker-compose up -d
