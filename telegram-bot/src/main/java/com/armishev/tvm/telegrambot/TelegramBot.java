@@ -188,7 +188,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                         try {
                             String command = buildJMeterCommand(loadDraft);
                             writeAndPushTriggerFile(command);
-                            sendText(chatId, "✅ Команда отправлена в Git! CI должен её выполнить.");
+                            sendText(chatId, "✅ Нагрузочное тестирование успешно запущено!");
                         } catch (Exception e) {
                             sendText(chatId, "❌ Ошибка при формировании команды: " + e.getMessage());
                         }
