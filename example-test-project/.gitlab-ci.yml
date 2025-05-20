@@ -1,0 +1,40 @@
+stages:
+  - build
+  - deploy
+  - monitoring
+
+build-job:
+  stage: build
+  script:
+    - ./gradlew build
+    - ls -la build/libs
+    - echo "Compile complete."
+  artifacts:
+    paths:
+      - build/libs/stock-market-api-0.0.1-SNAPSHOT.jar
+    expire_in: 1 week
+
+deploy-job:
+  stage: deploy
+  script:
+    - ls -la build/libs
+    # Останавливаем и удаляем старый контейнер (если он существует)
+    - docker stop stock-market-api || true
+    - docker rm stock-market-api || true
+    # Удаляем старый образ (если он существует)
+    - docker rmi stock-market-api || true
+    - docker build -t stock-market-api .
+    - docker run -d -p 8080:8080 --name stock-market-api --network monitoring --restart unless-stopped stock-market-api
+
+monitoring-job:
+  stage: monitoring
+  script:
+    - docker stop prometheus || true
+    - docker rm prometheus || true
+    - docker stop alertmanager || true
+    - docker rm alertmanager || true
+    # Запускаем Prometheus с монтированием созданного файла
+    - envsubst < alertmanager.yml > alertmanager_rendered.yml
+    - docker run -d --name alertmanager --network monitoring -p 9093:9093 -v $(pwd)/alertmanager_rendered.yml:/etc/alertmanager/alertmanager.yml prom/alertmanager
+
+    - docker run -d --name prometheus --network monitoring -p 9090:9090 -v $(pwd)/prometheus.yml:/etc/prometheus/prometheus.yml -v $(pwd)/alert_rules.yml:/etc/prometheus/alert_rules.yml prom/prometheus

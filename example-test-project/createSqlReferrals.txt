@@ -1,0 +1,8 @@
+CREATE TABLE referrals (
+                           referrer_id INT NOT NULL,
+                           referral_id INT NOT NULL,
+                           invite_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                           PRIMARY KEY (referrer_id, referral_id),
+                           FOREIGN KEY (referrer_id) REFERENCES profile(user_id) ON DELETE CASCADE,
+                           FOREIGN KEY (referral_id) REFERENCES profile(user_id) ON DELETE RESTRICT
+);

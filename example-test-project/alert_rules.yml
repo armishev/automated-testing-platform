@@ -1,0 +1,73 @@
+groups:
+- name: HighLatency
+  rules:
+  - alert: HighRequestLatency
+    expr: rate(http_server_requests_seconds_sum[1m]) / rate(http_server_requests_seconds_count[1m])
+      > 1.2
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: Высокая задержка API
+      description: Средняя задержка обработки запросов превышает 1.2 секунды за последние
+        2 минуты.
+- name: AvailabilityAndErrors
+  rules:
+  - alert: ApiDown
+    expr: up{job="spring-boot-app"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: Сервис недоступен
+      description: Приложение spring-boot-app не доступно для Prometheus более одной
+        минуты.
+  - alert: High5xxErrorRate
+    expr: rate(http_server_requests_seconds_count{status=~"5.."}[2m]) > 0.05
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: Высокий уровень ошибок 5xx
+      description: Более 5% запросов завершились с ошибками сервера (5xx) за последние
+        2 минуты.
+- name: CPUAndMemory
+  rules:
+  - alert: HighCpuUsage
+    expr: rate(container_cpu_usage_seconds_total{container!="",pod!=""}[1m]) > 0.9
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: Высокая загрузка CPU
+      description: Контейнер использует более 90% CPU в течение последней минуты.
+  - alert: HighMemoryUsage
+    expr: container_memory_usage_bytes{container!="",pod!=""} / container_spec_memory_limit_bytes{container!="",pod!=""}
+      > 0.9
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: Высокое использование памяти
+      description: Контейнер использует более 90% доступной памяти.
+  - alert: High5xxErrorRate
+    expr: vector(1)
+    for: 10s
+    labels:
+      severity: critical
+    annotations:
+      summary: Высокий уровень ошибок 5xx
+      description: Более 5% запросов завершились с ошибками сервера (5xx) за последние
+        2 минуты.
+- name: BotAlerts
+  rules:
+  - alert: UnusualHighRequestRate_c5ee8
+    expr: rate(http_requests_total[5m])
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: Повышенный уровень входящих HTTP-запросов
+      description: Количество входящих HTTP-запросов превышает 100 запросов в секунду
+        за последние 5 минут. Проверьте на предмет возможного всплеска трафика или
+        атаки.

@@ -1,0 +1,45 @@
+server:
+  port: 8080
+
+spring:
+  r2dbc:
+    pool:
+      enabled: true
+      max-size: 5 # Увеличьте до нужного значения
+      initial-size: 5
+      max-acquire-time: 60s         # Максимальное время ожидания получения соединения
+      max-create-connection-time: 60s
+      connection-timeout: 30s
+
+
+    url: r2dbc:postgresql://195.133.30.216:5432/default_db
+    username: gen_user
+    password: aifa?4bMJ!QKrp
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus,health,info,chaosMonkey
+  endpoint:
+    prometheus:
+      enabled: true
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.boot.actuate.endpoint.web: DEBUG
+    org.springframework.boot.web: DEBUG
+
+
+chaos:
+  monkey:
+    enabled: true            # Включить Chaos Monkey
+    assault:
+      level: 10               # Уровень "агрессивности" хаоса (может влиять на частоту атак)
+      latencyActive: true    # Включить имитацию задержек
+      latencyRangeStart: 1000  # Минимальная задержка в мс
+      latencyRangeEnd: 3000    # Максимальная задержка в мс
+      killApplicationActive: false  # Не убивать приложение, только имитировать задержки и ошибки
+
+

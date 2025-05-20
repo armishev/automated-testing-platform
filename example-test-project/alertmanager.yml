@@ -1,0 +1,27 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: 'telegram'
+
+receivers:
+  - name: 'telegram'
+    telegram_configs:
+      - bot_token: '${TELEGRAM_BOT_TOKEN}'
+        chat_id: ${TELEGRAM_CHAT_ID}
+        message: |
+          *🔥 {{ .CommonLabels.alertname }}*
+          *Уровень:* {{ .CommonLabels.severity }}
+          *Описание:* {{ .CommonAnnotations.description }}
+          *Кратко:* {{ .CommonAnnotations.summary }}
+          {{ range .Alerts }}
+          — *Инстанс:* {{ .Labels.instance }}
+          — *Время:* {{ .StartsAt }}
+          {{ end }}
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']
