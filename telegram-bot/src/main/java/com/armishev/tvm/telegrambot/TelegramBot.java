@@ -420,7 +420,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
                 draft.setLatencyRangeEnd(max);
                 draft.setStep(4);
-                sendText(chatId, "💥 Бросать исключения? (да/нет):");
+                sendText(chatId, "💥 Искусственно выбрасывать исключения? (да/нет):");
                 break;
 
             case 4:
@@ -440,7 +440,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
                 draft.setExceptionClass(messageText);
                 draft.setStep(6);
-                sendText(chatId, "🧠 Включить загрузку памяти? (да/нет):");
+                sendText(chatId, "🧠 Включить нагрузку на память(RAM)? (да/нет):");
                 break;
 
             case 6:
@@ -450,7 +450,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
                 draft.setMemoryActive(messageText.equalsIgnoreCase("да"));
                 draft.setStep(7);
-                sendText(chatId, "⌛ Время загрузки памяти (мс):");
+                sendText(chatId, "⌛ Время нагрузки на память(RAM) (мс):");
                 break;
 
             case 7:
@@ -458,7 +458,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 if (memMs == null) return true;
                 draft.setMemoryMillisecondsHold(memMs);
                 draft.setStep(8);
-                sendText(chatId, "🧮 Включить загрузку CPU? (да/нет):");
+                sendText(chatId, "🧮 Включить нагрузку на CPU? (да/нет):");
                 break;
 
             case 8:
@@ -468,7 +468,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
                 draft.setCpuActive(messageText.equalsIgnoreCase("да"));
                 draft.setStep(9);
-                sendText(chatId, "⌛ Время загрузки CPU (мс):");
+                sendText(chatId, "⌛ Время нагрузки на CPU (мс):");
                 break;
 
             case 9:
@@ -476,7 +476,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 if (cpuMs == null) return true;
                 draft.setCpuMillisecondsHold(cpuMs);
                 draft.setStep(10);
-                sendText(chatId, "☠️ Завершать приложение (killApplication)? (да/нет):");
+                sendText(chatId, "☠️ Принудительно завершить приложение? (да/нет):");
                 break;
 
             case 10:
@@ -505,7 +505,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     try {
                         sendChaosMonkeyConfig(draft);
                     } catch (Exception e) {
-                        logger.info("Ошибка при отправке конфигурации хаос тестирования");
+                        logger.info("Ошибка при отправке конфигурации хаос-тестирования");
                     }
                     sendText(chatId, "✅ Chaos Monkey конфигурация отправлена, хаос-тест запущен!");
                 } else {
