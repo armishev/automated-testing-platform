@@ -129,7 +129,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             switch (loadDraft.getStep()) {
                 case 1:
                     if (!messageText.matches("\\d+")) {
-                        sendText(chatId, "❌ Укажи количество потоков числом. Например: 10");
+                        sendText(chatId, "❌ Укажите количество потоков числом. Например: 10");
                         return true;
                     }
                     loadDraft.setThreads(messageText);
@@ -180,7 +180,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     }
                     loadDraft.setPath(messageText);
                     loadDraft.setStep(7);
-                    sendText(chatId, "⚠️ Подтвердить запуск нагрузки? Напиши `да` для подтверждения или `нет` для " +
+                    sendText(chatId, "⚠️ Подтвердить запуск нагрузки? `да` для подтверждения или `нет` для " +
                             "отмены.");
                     break;
                 case 7:
